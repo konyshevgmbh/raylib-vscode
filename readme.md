@@ -13,6 +13,8 @@ Status bar: **Debug/Release** toggle, device picker (Windows, Chrome, Edge, Andr
 
 Commands: **Raylib: Init**, Select Device, Toggle Debug/Release, Toggle Android Build Backend, Generate Icons, Run.
 
+![commands](vscode-commands.png)
+
 - Desktop: Windows uses `cppvsdbg`, Linux/macOS use CodeLLDB.
 - Android: built locally (Gradle) or in Docker (`mingc/android-build-box`); setting `raylibDevices.androidBackend` = `auto`/`native`/`docker` (auto = local if an NDK is installed). Debug uses lldb-server + CodeLLDB; breakpoints in `main.c` work.
 - Web: built in Docker (`emscripten/emsdk`; needs Docker + python). To debug in DevTools (F12), install the Chrome extension *C/C++ DevTools Support (DWARF)*.
