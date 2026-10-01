@@ -58,8 +58,12 @@ Android Studio can also open `android/`. `assets/` is packed into the APK.
 
 On the left of the status bar: the **Debug/Release** toggle (`Debug`), the **device picker** (`Windows`) and the **run** button (▷).
 
-Open this folder in VS Code (extension in `tools/vscode-raylib-devices`; install once with
-`code --install-extension tools/vscode-raylib-devices/raylib-devices-0.0.21.vsix`).
+**Install the plugin:** [download the latest `raylib-devices.vsix`](https://github.com/konyshevgmbh/raylib-vscode/releases/latest/download/raylib-devices.vsix)
+(all versions: [Releases](https://github.com/konyshevgmbh/raylib-vscode/releases)), then
+`code --install-extension raylib-devices.vsix` or Extensions > `...` > *Install from VSIX*.
+A new release is published automatically whenever the plugin version is bumped on `main`.
+
+Open this folder in VS Code (extension sources in `tools/vscode-raylib-devices`).
 Status bar: **Debug/Release** toggle, **device picker** (Windows / Chrome / Edge / Android devices,
 Wi-Fi adb, emulators) and a run button. F5 runs the `Debug` or `Release` entry from `launch.json`
 on the selected device. Palette commands: **Raylib: Init** (see below), Select Device, Toggle Debug/Release,
@@ -91,5 +95,7 @@ The generator (`tools/gen_icons.js`) is plain Node.js with no dependencies (no I
 Tasks (Terminal > Run Task): **Plugin: Bump version**, **Plugin: Package (.vsix)**, **Plugin: Package and install**.
 
 ## CI
+`.github/workflows/release-plugin.yml` publishes the plugin `.vsix` as a GitHub release (tag `v<version>`) on every push to `main` that changes `tools/vscode-raylib-devices/` with a new version in `package.json`.
+
 `.github/workflows/build.yml` builds Windows, Linux, Web and Android on every push/PR and uploads artifacts.
 macOS and iOS (simulator, unsigned) are informational (`continue-on-error`) because they were written without a Mac.

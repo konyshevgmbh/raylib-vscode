@@ -1,0 +1,54 @@
+name: Release plugin
+
+# Every push to main that changes the plugin publishes a GitHub release with the .vsix,
+# tagged with the version from package.json (bump it with the "Plugin: Bump version" task).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/vscode-raylib-devices/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version
+        id: v
+        run: echo "version=$(node -p "require('./tools/vscode-raylib-devices/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Check whether the release already exists
+        id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.v.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.exists.outputs.exists == 'false'
+        with:
+          node-version: 20
+      - name: Package
+        if: steps.exists.outputs.exists == 'false'
+        working-directory: tools/vscode-raylib-devices
+        run: |
+          npx --yes @vscode/vsce package --allow-missing-repository --skip-license \
+            --out "raylib-devices-${{ steps.v.outputs.version }}.vsix"
+          # fixed name, so README can link to .../releases/latest/download/raylib-devices.vsix
+          cp "raylib-devices-${{ steps.v.outputs.version }}.vsix" raylib-devices.vsix
+      - name: Create release
+        if: steps.exists.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.v.outputs.version }}" \
+            "tools/vscode-raylib-devices/raylib-devices-${{ steps.v.outputs.version }}.vsix" \
+            "tools/vscode-raylib-devices/raylib-devices.vsix" \
+            --title "Plugin v${{ steps.v.outputs.version }}" \
+            --generate-notes --latest
