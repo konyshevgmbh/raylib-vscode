@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2022   # the preset uses "Visual Studio 17 2022"; windows-latest may ship a newer VS
     steps:
       - uses: actions/checkout@v4
       - run: cmake --preset windows
@@ -118,7 +118,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+      # the ubuntu runner already ships the Android SDK/NDK/CMake (ANDROID_HOME); setup-android fails on it ('tools' package)
       - name: Build debug APK
         working-directory: android
         run: |
