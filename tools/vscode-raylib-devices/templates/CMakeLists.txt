@@ -11,15 +11,13 @@ include(FetchContent)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
+set(RAYLIB_TAG 6.0)
 if (EMSCRIPTEN)
     set(PLATFORM Web CACHE STRING "" FORCE)
-    set(RAYLIB_TAG 6.0)
 elseif (ANDROID)
     set(PLATFORM Android CACHE STRING "" FORCE)
-    set(RAYLIB_TAG 5.5)
 else()
     set(PLATFORM Desktop CACHE STRING "" FORCE)
-    set(RAYLIB_TAG 5.5)
 endif()
 
 FetchContent_Declare(raylib
