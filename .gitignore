@@ -1,0 +1,18 @@
+build/
+build-windows/
+build-linux/
+build-macos/
+build-web/
+build-android/
+build-ios/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/local.properties
+android/app/build-docker/
+android/app/.cxx-docker/
+build-android-dbg/
+
+# plugin build output from the "Plugin: Package and install" task
+tools/vscode-raylib-devices/raylib-devices-latest.vsix

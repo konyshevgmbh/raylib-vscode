@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "ms-vscode.wasm-dwarf-debugging",
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools"
+    ]
+}

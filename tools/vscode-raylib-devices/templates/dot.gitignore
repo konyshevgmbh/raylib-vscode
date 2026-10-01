@@ -1,0 +1,15 @@
+build/
+build-windows/
+build-linux/
+build-macos/
+build-android/
+build-ios/
+build-web/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/local.properties
+android/app/build-docker/
+android/app/.cxx-docker/
+build-android-dbg/

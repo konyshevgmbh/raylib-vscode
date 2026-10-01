@@ -1,0 +1,4 @@
+{
+    "debug.showInStatusBar": "never",
+    "raylibDevices.androidBackend": "native"
+}

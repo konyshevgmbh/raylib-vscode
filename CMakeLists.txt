@@ -1,0 +1,124 @@
+cmake_minimum_required(VERSION 3.19)
+project(raylib_button C)
+
+if (WIN32)
+    enable_language(RC)   # for the executable icon (icons/app.rc)
+endif()
+
+set(CMAKE_C_STANDARD 99)
+
+include(FetchContent)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+# Pick the raylib platform
+set(RAYLIB_TAG 5.5)
+if (EMSCRIPTEN)
+    set(PLATFORM Web CACHE STRING "" FORCE)
+    # 5.5 mis-scales the mouse on a resizable web canvas (fixed by raylib PR #5115, in 6.0)
+    set(RAYLIB_TAG 6.0)
+elseif (ANDROID)
+    set(PLATFORM Android CACHE STRING "" FORCE)
+elseif (IOS)
+    # raylib has no native iOS platform: use its SDL backend on top of SDL3 (needs raylib master)
+    set(PLATFORM SDL CACHE STRING "" FORCE)
+    set(OPENGL_VERSION "ES 3.0" CACHE STRING "" FORCE)
+    set(RAYLIB_TAG master)
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(SDL_TEST OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(SDL3
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG release-3.4.4
+        GIT_SHALLOW ON)
+    FetchContent_MakeAvailable(SDL3)
+else()  # Windows, Linux, macOS
+    set(PLATFORM Desktop CACHE STRING "" FORCE)
+endif()
+
+FetchContent_Declare(raylib
+    GIT_REPOSITORY https://github.com/raysan5/raylib.git
+    GIT_TAG ${RAYLIB_TAG}
+    GIT_SHALLOW ON)
+FetchContent_MakeAvailable(raylib)
+
+if (IOS)
+    # raylib expects Khronos GLES headers; map them to Apple's OpenGLES framework
+    target_include_directories(raylib PUBLIC ${CMAKE_SOURCE_DIR}/ios/compat)
+    target_link_libraries(raylib PUBLIC "-framework OpenGLES")
+endif()
+
+# All game sources (main loop + screens from the raylib game template)
+file(GLOB APP_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.c)
+
+if (ANDROID)
+    # Android loads a shared library; raylib's android_main() lives in the lib,
+    # and native_app_glue must be compiled in and kept (ANativeActivity_onCreate).
+    set(GLUE ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue)
+    add_library(${PROJECT_NAME} SHARED ${APP_SOURCES} ${GLUE}/android_native_app_glue.c)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${GLUE})
+    target_link_options(${PROJECT_NAME} PRIVATE -u ANativeActivity_onCreate
+        -Wl,-z,max-page-size=16384)  # 16 KB pages: required by Google Play for Android 15+
+    target_link_libraries(${PROJECT_NAME} raylib log android EGL GLESv2 OpenSLES m)
+elseif (IOS)
+    set(IOS_ICONS ${CMAKE_SOURCE_DIR}/ios/AppIcon.xcassets)
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${APP_SOURCES} ${CMAKE_SOURCE_DIR}/assets ${IOS_ICONS})
+    target_compile_definitions(${PROJECT_NAME} PRIVATE RAYLIB_EX_IOS)
+    target_link_libraries(${PROJECT_NAME} raylib SDL3::SDL3-static
+        "-framework UIKit" "-framework Foundation" "-framework OpenGLES" "-framework QuartzCore"
+        "-framework AudioToolbox" "-framework AVFoundation" "-framework CoreMedia"
+        "-framework CoreVideo" "-framework GameController")
+    target_link_options(${PROJECT_NAME} PRIVATE -ObjC)  # keep Objective-C categories from static SDL
+    set(IOS_BUNDLE_IDENTIFIER "com.example.raylibbutton" CACHE STRING "iOS bundle identifier")
+    set(IOS_DEVELOPMENT_TEAM "" CACHE STRING "Apple team id for device signing (empty = simulator)")
+    # assets/ is a folder reference -> copied as a directory into the app bundle
+    set_source_files_properties(${CMAKE_SOURCE_DIR}/assets PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/ios/Info.plist.in
+        MACOSX_BUNDLE_GUI_IDENTIFIER ${IOS_BUNDLE_IDENTIFIER}
+        MACOSX_BUNDLE_BUNDLE_VERSION 1
+        MACOSX_BUNDLE_SHORT_VERSION_STRING 1.0
+        XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME AppIcon   # ios/AppIcon.xcassets
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${IOS_BUNDLE_IDENTIFIER}
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
+        XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic
+        XCODE_GENERATE_SCHEME TRUE)
+    if (IOS_DEVELOPMENT_TEAM)
+        set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_DEVELOPMENT_TEAM ${IOS_DEVELOPMENT_TEAM})
+    endif()
+else()
+    if (WIN32)
+        add_executable(${PROJECT_NAME} ${APP_SOURCES} ${CMAKE_SOURCE_DIR}/icons/app.rc)
+    else()
+        add_executable(${PROJECT_NAME} ${APP_SOURCES})
+    endif()
+    target_link_libraries(${PROJECT_NAME} raylib)
+endif()
+
+# assets/ -> next to the executable (Windows/Linux/macOS); web, android and iOS are handled separately
+if (NOT ANDROID AND NOT EMSCRIPTEN AND NOT IOS)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets)
+endif()
+
+if (EMSCRIPTEN)
+    set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".html")
+    # favicon / app icons / manifest referenced from web/shell.html (generated by tools/gen_icons.js web)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/icons/web $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+    target_link_options(${PROJECT_NAME} PRIVATE -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1
+        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/assets@/assets"
+        # page template: bare canvas filling the browser window, no emscripten header/console
+        "SHELL:--shell-file ${CMAKE_SOURCE_DIR}/web/shell.html"
+        $<$<CONFIG:Debug>:-g>)  # keep DWARF for C debugging in Chrome DevTools
+endif()
+
+# Debuggable native code on Android / Web
+if (ANDROID OR EMSCRIPTEN)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g> $<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
+endif()
+
+if (WIN32 AND NOT ANDROID AND MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+endif()

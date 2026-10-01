@@ -1,0 +1,2 @@
+// Windows resource: executable icon (shown in Explorer, taskbar and title bar)
+IDI_ICON1 ICON "icon.ico"

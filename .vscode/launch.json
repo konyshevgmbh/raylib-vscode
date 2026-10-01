@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Flutter-style: the device (Windows / Chrome / Edge / Android) is chosen in the
+            // status bar; see tools/vscode-raylib-devices/extension.js.
+            "type": "raylib",
+            "request": "launch",
+            "name": "Debug"
+        },
+        {
+            "type": "raylib",
+            "request": "launch",
+            "name": "Release"
+        }
+    ]
+}

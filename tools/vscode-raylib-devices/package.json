@@ -1,0 +1,106 @@
+{
+  "name": "raylib-devices",
+  "displayName": "Raylib Device Runner",
+  "description": "Flutter-style device picker and run button for the raylib_ex project (Windows / Chrome / Edge / Android).",
+  "version": "0.0.21",
+  "publisher": "konyshevgmbh",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "raylibDevices.init",
+        "title": "Raylib: Init"
+      },
+      {
+        "command": "raylibDevices.pickDevice",
+        "title": "Raylib: Select Device"
+      },
+      {
+        "command": "raylibDevices.toggleMode",
+        "title": "Raylib: Toggle Debug/Release"
+      },
+      {
+        "command": "raylibDevices.toggleBackend",
+        "title": "Raylib: Toggle Android Build Backend (Local SDK/Docker)"
+      },
+      {
+        "command": "raylibDevices.generateIcons",
+        "title": "Raylib: Generate Icons from assets/icon.png"
+      },
+      {
+        "command": "raylibDevices.run",
+        "title": "Raylib: Run",
+        "icon": "$(play)"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "raylib",
+        "label": "Raylib",
+        "languages": [
+          "c",
+          "cpp"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {}
+          }
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Raylib Devices",
+      "properties": {
+        "raylibDevices.androidBackend": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "native",
+            "docker"
+          ],
+          "default": "auto",
+          "enumDescriptions": [
+            "Local SDK/NDK if installed, otherwise Docker",
+            "Build with Gradle and the locally installed Android SDK/NDK (ANDROID_HOME)",
+            "Build inside the mingc/android-build-box Docker image"
+          ],
+          "description": "How the Android APK is built when running from VS Code."
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "raylibDevices.pickDevice",
+          "when": "raylibDevices.active"
+        },
+        {
+          "command": "raylibDevices.toggleMode",
+          "when": "raylibDevices.active"
+        },
+        {
+          "command": "raylibDevices.toggleBackend",
+          "when": "raylibDevices.active"
+        },
+        {
+          "command": "raylibDevices.generateIcons",
+          "when": "raylibDevices.active"
+        },
+        {
+          "command": "raylibDevices.run",
+          "when": "raylibDevices.active"
+        }
+      ]
+    }
+  }
+}

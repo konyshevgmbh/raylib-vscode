@@ -1,0 +1,50 @@
+plugins {
+    id 'com.android.application'
+}
+
+// All Android build output goes to <project>/build-android; Docker builds (-Pdocker) use separate output dirs: host and container paths differ,
+// and mixing them corrupts the CMake cache.
+def docker = project.hasProperty('docker')
+layout.buildDirectory = file("${rootProject.projectDir}/../build-android/${docker ? 'docker' : 'gradle'}")
+
+android {
+    namespace 'com.example.raylibbutton'
+    compileSdk 34
+    ndkVersion '25.2.9519653'
+
+    defaultConfig {
+        applicationId 'com.example.raylibbutton'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+        externalNativeBuild {
+            cmake { arguments '-DANDROID_STL=c++_static' }
+        }
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64' }
+    }
+
+    buildTypes {
+        release {
+            // sample app: sign with the debug key so `installRelease` works
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    // Repo-root assets/ -> APK assets/assets/ (so the path "assets/title.txt" works like on desktop)
+    def assetsOutDir = layout.buildDirectory.dir('generated/assets')
+    task copyAssets(type: Copy) {
+        from(rootProject.file('../assets')) { into 'assets' }
+        into assetsOutDir
+    }
+    sourceSets { main { assets.srcDirs = [assetsOutDir.get()] } }
+    preBuild.dependsOn copyAssets
+
+    externalNativeBuild {
+        cmake {
+            path file('../../CMakeLists.txt')
+            version '3.22.1'
+            buildStagingDirectory = file("${rootProject.projectDir}/../build-android/${docker ? 'cxx-docker' : 'cxx'}")
+        }
+    }
+}

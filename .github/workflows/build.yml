@@ -1,0 +1,156 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake --preset windows
+      - run: cmake --build --preset windows-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: build-windows/Release/   # exe + assets/
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libwayland-dev libxkbcommon-dev
+      - run: cmake --preset linux -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build --preset linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: |
+            build-linux/raylib_button
+            build-linux/assets/
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          actions-cache-folder: emsdk-cache
+      - run: emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build-web -j
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          # the .html is the page; .js/.wasm/.data are loaded by it, icon.png is the favicon
+          path: |
+            build-web/raylib_button.html
+            build-web/raylib_button.js
+            build-web/raylib_button.wasm
+            build-web/raylib_button.data
+            build-web/favicon.ico
+            build-web/apple-touch-icon.png
+            build-web/icon-192.png
+            build-web/icon-512.png
+            build-web/manifest.webmanifest
+          if-no-files-found: error
+
+  # VS Code extension (tools/vscode-raylib-devices) -> .vsix
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Package .vsix
+        working-directory: tools/vscode-raylib-devices
+        run: npx --yes @vscode/vsce package --allow-missing-repository --skip-license --out raylib-devices.vsix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vscode-extension
+          path: tools/vscode-raylib-devices/raylib-devices.vsix
+          if-no-files-found: error
+
+  # Publish the web build to GitHub Pages (needs Settings -> Pages -> Source: GitHub Actions)
+  pages:
+    needs: web
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: site
+      # Pages serves index.html at the root
+      - run: mv site/raylib_button.html site/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: build-android/gradle/outputs/apk/debug/app-debug.apk
+
+  # macOS and iOS were written without access to a Mac, so these two are informational:
+  # a failure is reported but does not fail the workflow.
+  macos:
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install ninja
+      - run: cmake --preset macos -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build --preset macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            build-macos/raylib_button
+            build-macos/assets/
+
+  ios:
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      # unsigned simulator build: verifies that the iOS target configures and compiles
+      - run: cmake --preset ios-simulator
+      - run: cmake --build --preset ios-simulator -- CODE_SIGNING_ALLOWED=NO

@@ -1,0 +1,64 @@
+{
+    // Icons are generated from assets/icon.png by tools/gen_icons.js (pure Node.js, no other tools needed).
+    // Desktop windows and the web favicon use assets/icon.png directly.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Icons: Generate all platforms",
+            "type": "shell",
+            "command": "node tools/gen_icons.js all",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "group": "build"
+        },
+        {
+            "label": "Icons: Android (mipmap)",
+            "type": "shell",
+            "command": "node tools/gen_icons.js android",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Icons: Windows (.ico)",
+            "type": "shell",
+            "command": "node tools/gen_icons.js windows",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Icons: Web (favicon, PWA)",
+            "type": "shell",
+            "command": "node tools/gen_icons.js web",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Icons: iOS (AppIcon)",
+            "type": "shell",
+            "command": "node tools/gen_icons.js ios",
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Plugin: Bump version",
+            "type": "shell",
+            "command": "npm version patch --no-git-tag-version",
+            "options": { "cwd": "${workspaceFolder}/tools/vscode-raylib-devices" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Plugin: Package (.vsix)",
+            "type": "shell",
+            "command": "npx --yes @vscode/vsce package --allow-missing-repository --skip-license",
+            "options": { "cwd": "${workspaceFolder}/tools/vscode-raylib-devices" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Plugin: Package and install",
+            "type": "shell",
+            "command": "npx --yes @vscode/vsce package --allow-missing-repository --skip-license --out raylib-devices-latest.vsix && code --install-extension raylib-devices-latest.vsix --force",
+            "options": { "cwd": "${workspaceFolder}/tools/vscode-raylib-devices" },
+            "problemMatcher": []
+        }
+    ]
+}

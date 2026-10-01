@@ -1,0 +1,9 @@
+{
+    "debug.showInStatusBar": "never",
+    "raylibDevices.androidBackend": "native",
+    // raylib is fetched by CMake (FetchContent) into build/_deps; point IntelliSense at its headers
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/build/_deps/raylib-src/src"
+    ]
+}
