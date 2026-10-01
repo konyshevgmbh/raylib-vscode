@@ -1,6 +1,8 @@
+<img src="assets/icon.png" alt="icon" width="128" align="right">
+
 # raylib button
 
-One button in the middle of the window; counts clicks/taps. Same `src/main.c` and `CMakeLists.txt` for all platforms (raylib 6.0 fetched automatically, see `RAYLIB_TAG` in `CMakeLists.txt`). `assets/` is available at the same path (`assets/title.txt`) everywhere.
+Built with [raylib](https://www.raylib.com/) ([GitHub](https://github.com/raysan5/raylib)). One button in the middle of the window; counts clicks/taps. Same `src/main.c` and `CMakeLists.txt` for all platforms (raylib 6.0 fetched automatically, see `RAYLIB_TAG` in `CMakeLists.txt`). `assets/` is available at the same path (`assets/title.txt`) everywhere.
 
 ## Build
 
