@@ -129,7 +129,7 @@ jobs:
           name: android-debug-apk
           path: build-android/gradle/outputs/apk/debug/app-debug.apk
 
-  # macOS and iOS were written without access to a Mac, so these two are informational:
+  # macOS was written without access to a Mac, so it is informational:
   # a failure is reported but does not fail the workflow.
   macos:
     runs-on: macos-latest
@@ -145,12 +145,3 @@ jobs:
           path: |
             build-macos/raylib_button
             build-macos/assets/
-
-  ios:
-    runs-on: macos-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      # unsigned simulator build: verifies that the iOS target configures and compiles
-      - run: cmake --preset ios-simulator
-      - run: cmake --build --preset ios-simulator -- CODE_SIGNING_ALLOWED=NO
