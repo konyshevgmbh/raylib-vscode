@@ -1,4 +1,4 @@
-<img src="assets/icon.png" alt="icon" width="128">
+<img src="vscode-icon.png" alt="icon" width="128">
 
 # raylib-vscode
 
