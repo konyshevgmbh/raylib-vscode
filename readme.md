@@ -1,4 +1,4 @@
-<img src="assets/icon.png" alt="icon" width="128" align="right">
+<img src="assets/icon.png" alt="icon" width="128">
 
 # raylib button
 
