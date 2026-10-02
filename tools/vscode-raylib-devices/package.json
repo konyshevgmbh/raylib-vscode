@@ -2,7 +2,7 @@
   "name": "raylib-devices",
   "displayName": "Raylib Device Runner",
   "description": "Flutter-style device picker and run button for the raylib_ex project (Windows / Chrome / Edge / Android).",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "publisher": "konyshevgmbh",
   "private": true,
   "engines": {

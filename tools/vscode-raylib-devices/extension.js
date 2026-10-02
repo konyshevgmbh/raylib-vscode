@@ -249,6 +249,7 @@ function activateProject(context, projectFolder) {
     }
     items.push({ label: '$(radio-tower) Connect device over Wi-Fi...', description: 'adb connect ip:port', action: 'wifi-connect' });
     items.push({ label: '$(key) Pair device over Wi-Fi (Android 11+)...', description: 'adb pair ip:port', action: 'wifi-pair' });
+    items.push({ label: '$(device-camera) Pair device over Wi-Fi with QR code...', description: 'scan QR on the phone', action: 'wifi-pair-qr' });
 
     let avds = [];
     try { avds = await listAvds(); } catch (e) { avds = []; }
@@ -265,6 +266,7 @@ function activateProject(context, projectFolder) {
     if (!picked) return;
     if (picked.action === 'wifi-connect') return connectWifi();
     if (picked.action === 'wifi-pair') return pairWifi();
+    if (picked.action === 'wifi-pair-qr') return pairWifiQr();
     if (picked.device) await setDevice(picked.device);
   }
 
@@ -281,6 +283,69 @@ function activateProject(context, projectFolder) {
       await setDevice({ kind: 'android-online', serial: target, model: target });
     } else {
       vscode.window.showErrorMessage(`Raylib: adb connect failed - ${out || 'no response'}`);
+    }
+  }
+
+  // Pairs by QR like Android Studio: shows WIFI:T:ADB QR, the phone (Wireless debugging > Pair device
+  // with QR code) advertises _adb-tls-pairing._tcp with our name over mDNS, then adb pair <addr> <password>.
+  async function pairWifiQr() {
+    const rnd = (n) => Array.from({ length: n }, () => 'abcdefghijkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 32)]).join('');
+    const name = `raylib-${rnd(6)}`;
+    const password = rnd(10);
+    const qr = require('./qrcode.js')(0, 'M');
+    qr.addData(`WIFI:T:ADB;S:${name};P:${password};;`);
+    qr.make();
+    const panel = vscode.window.createWebviewPanel('raylibQr', 'Pair Android device', vscode.ViewColumn.Active, {});
+    panel.webview.html = `<!doctype html><body style="font-family:sans-serif;text-align:center;padding:20px">
+      <h3>Scan with the phone</h3>
+      <p>Settings &gt; Developer options &gt; Wireless debugging &gt; Pair device with QR code</p>
+      <div style="background:#fff;display:inline-block;padding:16px">${qr.createSvgTag({ cellSize: 6, margin: 0, scalable: false })}</div>
+      <p>Waiting for the device...</p></body>`;
+    let closed = false;
+    panel.onDidDispose(() => { closed = true; });
+    const findService = async (type, match) => {  // match: substring of service name, or fn(addr)
+      const { stdout } = await execFile(adbPath(), ['mdns', 'services']);
+      for (const line of stdout.split(/\r?\n/)) {
+        const p = line.trim().split(/\s+/);
+        if (p[1] !== type) continue;
+        if (typeof match === 'function' ? match(p[2]) : (!match || p[0].includes(match))) return p[2];
+      }
+      return null;
+    };
+    let addr = null;
+    for (let i = 0; i < 60 && !closed && !addr; i++) {
+      addr = await findService('_adb-tls-pairing._tcp', name);
+      if (!addr) await new Promise((r) => setTimeout(r, 1000));
+    }
+    if (!addr) {
+      panel.dispose();
+      if (!closed) vscode.window.showErrorMessage('Raylib: QR pairing timed out (no mDNS service seen; check same network / adb version, or use code pairing)');
+      return;
+    }
+    const r = await execFile(adbPath(), ['pair', addr, password], 20000);
+    const out = (r.stdout + r.stderr).trim();
+    panel.dispose();
+    if (!/success/i.test(out)) {
+      vscode.window.showErrorMessage(`Raylib: pairing failed - ${out || 'no response'}`);
+      return;
+    }
+    // After pairing the phone advertises _adb-tls-connect._tcp (service name is adb-<serial>-xxxx)
+    let target = null;
+    for (let i = 0; i < 10 && !target; i++) {
+      target = await findService('_adb-tls-connect._tcp', (a) => a.split(':')[0] === addr.split(':')[0]);
+      if (!target) await new Promise((r2) => setTimeout(r2, 1000));
+    }
+    if (!target) {
+      vscode.window.showInformationMessage('Raylib: paired. Now enter the connect address shown on the device.');
+      return connectWifi();
+    }
+    const c = await execFile(adbPath(), ['connect', target]);
+    const cout = (c.stdout + c.stderr).trim();
+    if (/connected|already/i.test(cout)) {
+      vscode.window.showInformationMessage(`Raylib: ${cout}`);
+      await setDevice({ kind: 'android-online', serial: target, model: target });
+    } else {
+      vscode.window.showErrorMessage(`Raylib: adb connect failed - ${cout || 'no response'}`);
     }
   }
 
